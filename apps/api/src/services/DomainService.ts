@@ -13,7 +13,9 @@ import {
   disableFeedbackForwarding,
   getDomainVerificationAttributes,
   verifyDomain,
+  identityExists,
 } from './SESService.js';
+import {AWS_SES_MANAGED_EXTERNALLY} from '../app/constants.js';
 
 export class DomainService {
   /**
@@ -41,8 +43,16 @@ export class DomainService {
    * Add a new domain to a project and start verification
    */
   public static async addDomain(projectId: string, domain: string) {
-    // Start verification process with AWS SES
-    const dkimTokens = await verifyDomain(domain);
+    let dkimTokens: string[] = [];
+
+    if (AWS_SES_MANAGED_EXTERNALLY) {
+      const verified = await identityExists(domain);
+      if (!verified) {
+        throw new Error('Domain not verified in AWS SES.');
+      }
+    } else {
+      dkimTokens = await verifyDomain(domain);
+    }
 
     // Create domain record
     const newDomain = await prisma.domain.create({
@@ -77,8 +87,30 @@ export class DomainService {
 
     const attributes = await getDomainVerificationAttributes(domain.domain);
 
+    if (AWS_SES_MANAGED_EXTERNALLY) {
+      const verified = await identityExists(domain.domain);
+      if (verified && !domain.verified) {
+        const updatedDomain = await prisma.domain.update({
+          where: {id: domainId},
+          data: {verified: true},
+          include: {
+            project: {
+              select: {name: true, id: true},
+            },
+          },
+        });
+        await NtfyService.notifyDomainVerified(domain.domain, updatedDomain.project.name, updatedDomain.project.id);
+      }
+      return {
+        domain: domain.domain,
+        tokens: [],
+        status: verified ? 'Success' : 'Failed',
+        verified,
+      };
+    }
+
     // If domain failed verification, retry
-    if (attributes.status === 'Failed') {
+    if (attributes.status === 'Failed' && !AWS_SES_MANAGED_EXTERNALLY) {
       signale.warn(`[DOMAIN-SERVICE] Restarting verification for ${domain.domain}`);
 
       let attempt = 0;

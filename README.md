@@ -50,6 +50,20 @@ You can pull the latest image from [Github](https://github.com/useplunk/plunk/pk
 A complete guide on how to deploy Plunk can be found in
 the [documentation](https://docs.useplunk.com/self-hosting/introduction).
 
+## Self Hosted SES
+
+Quando o SES já estiver configurado manualmente:
+- domínio verificado
+- DKIM
+- MAIL FROM
+- IAM
+
+basta definir
+```env
+AWS_SES_MANAGED_EXTERNALLY=true
+```
+O Plunk utilizará a identidade existente e nunca tentará criar uma nova.
+
 ## Community
 
 - **Documentation**: [docs.useplunk.com](https://docs.useplunk.com)

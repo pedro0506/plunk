@@ -10,6 +10,7 @@ import {
   SES_CONFIGURATION_SET,
   SES_CONFIGURATION_SET_NO_TRACKING,
   TRACKING_TOGGLE_ENABLED,
+  AWS_SES_MANAGED_EXTERNALLY,
 } from '../app/constants.js';
 
 /**
@@ -248,6 +249,10 @@ export const getIdentities = async (domains: string[]): Promise<{domain: string;
  * Verify a domain and get DKIM tokens for DNS configuration
  */
 export const verifyDomain = async (domain: string): Promise<string[]> => {
+  if (AWS_SES_MANAGED_EXTERNALLY) {
+    return [];
+  }
+
   // Verify DKIM for the domain
   const DKIM = await ses.verifyDomainDkim({Domain: domain});
 
@@ -335,4 +340,20 @@ export const getSendingQuota = async (): Promise<{
     signale.error('[SES] Failed to fetch sending quota:', error);
     return null;
   }
+};
+
+export const identityExists = async (email: string) => {
+  const domain = email.includes("@")
+    ? email.split("@")[1]
+    : email;
+  if (!domain) return false;
+
+  const result = await ses.getIdentityVerificationAttributes({
+    Identities: [domain],
+  });
+
+  const attrs = result.VerificationAttributes?.[domain];
+  if (!attrs) return false;
+
+  return attrs.VerificationStatus === "Success";
 };

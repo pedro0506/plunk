@@ -153,6 +153,7 @@ services:
       AWS_SES_SECRET_ACCESS_KEY: ${AWS_SES_SECRET_ACCESS_KEY}
       SES_CONFIGURATION_SET: ${SES_CONFIGURATION_SET}
       SES_CONFIGURATION_SET_NO_TRACKING: ${SES_CONFIGURATION_SET_NO_TRACKING:-}
+      AWS_SES_MANAGED_EXTERNALLY: ${AWS_SES_MANAGED_EXTERNALLY:-false}
 
       # Custom MAIL FROM subdomain (defaults to 'plunk'; override when
       # plunk.<your-domain> is already used for something else, e.g. a CDN)
